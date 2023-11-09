@@ -1,2 +1,5 @@
+# ignore all __pycache__ directories across the project
 **/__pycache__/
+
+# ignore MOT Challenge datasets
 MOT16/

@@ -13,8 +13,10 @@ from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 
+from dnn_utils.object_detection import ObjectDetector
+from dnn_utils.embedding import FeatureExtractor
 
-def gather_sequence_info(sequence_dir, detection_file):
+def gather_sequence_info(sequence_dir):
     """Gather sequence information, such as image filenames, detections,
     groundtruth (if available).
 
@@ -22,8 +24,6 @@ def gather_sequence_info(sequence_dir, detection_file):
     ----------
     sequence_dir : str
         Path to the MOTChallenge sequence directory.
-    detection_file : str
-        Path to the detection file.
 
     Returns
     -------
@@ -44,14 +44,16 @@ def gather_sequence_info(sequence_dir, detection_file):
     image_filenames = {
         int(os.path.splitext(f)[0]): os.path.join(image_dir, f)
         for f in os.listdir(image_dir)}
-    groundtruth_file = os.path.join(sequence_dir, "gt/gt.txt")
 
-    detections = None
-    if detection_file is not None:
-        detections = np.load(detection_file)
     groundtruth = None
+    groundtruth_file = os.path.join(sequence_dir, "gt/gt.txt")
     if os.path.exists(groundtruth_file):
         groundtruth = np.loadtxt(groundtruth_file, delimiter=',')
+
+    detections = None
+    detection_file = os.path.join(sequence_dir, "det/det.txt")
+    if os.path.exists(detection_file):
+        detections = np.loadtxt(detection_file, delimiter=',')
 
     if len(image_filenames) > 0:
         image = cv2.imread(next(iter(image_filenames.values())),
@@ -93,8 +95,9 @@ def gather_sequence_info(sequence_dir, detection_file):
     return seq_info
 
 
-def create_detections(detection_mat, frame_idx, min_height=0):
-    """Create detections for given frame index from the raw detection matrix.
+def create_detections(object_detector, feature_extractor,
+                      seq_info, frame_idx, conf_th, nms_th):
+    """Create detections for given frame index.
 
     Parameters
     ----------
@@ -114,21 +117,22 @@ def create_detections(detection_mat, frame_idx, min_height=0):
         Returns detection responses at given frame index.
 
     """
-    frame_indices = detection_mat[:, 0].astype(int)
-    mask = frame_indices == frame_idx
 
-    detection_list = []
-    for row in detection_mat[mask]:
-        bbox, confidence, feature = row[2:6], row[6], row[10:]
-        if bbox[3] < min_height:
-            continue
-        detection_list.append(Detection(bbox, confidence, feature))
-    return detection_list
+    image = cv2.imread(
+        seq_info["image_filenames"][frame_idx], cv2.IMREAD_COLOR)
+
+    dets = object_detector(image, conf_th, nms_th)
+    for det in dets:
+        tlbr = det.to_tlbr().astype(np.int32)
+        crop = image[tlbr[1]:tlbr[3], tlbr[0]:tlbr[2]]
+        feature = feature_extractor(crop)
+        det.set_feature(feature)
+
+    return dets
 
 
 def run(sequence_dir, detection_file, output_file, min_confidence,
-        nms_max_overlap, min_detection_height, max_cosine_distance,
-        nn_budget, display):
+        nms_max_overlap, max_distance, nn_budget, display):
     """Run multi-target tracker on a particular sequence.
 
     Parameters
@@ -157,9 +161,20 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         If True, show visualization of intermediate tracking results.
 
     """
-    seq_info = gather_sequence_info(sequence_dir, detection_file)
+    seq_info = gather_sequence_info(sequence_dir)
+
+    object_detector = ObjectDetector(
+        model_path='dnn_utils/models/yolov8n_quant.onnx',
+        img_size=(seq_info['image_size'][1], seq_info['image_size'][0])
+    )
+
+    feature_extractor = FeatureExtractor(
+        model_path='dnn_utils/models/osnet_x0_25.onnx',
+    )
+
     metric = nn_matching.NearestNeighborDistanceMetric(
-        "cosine", max_cosine_distance, nn_budget)
+        "euclidean", max_distance, nn_budget)
+
     tracker = Tracker(metric)
     results = []
 
@@ -168,15 +183,17 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
 
         # Load image and generate detections.
         detections = create_detections(
-            seq_info["detections"], frame_idx, min_detection_height)
-        detections = [d for d in detections if d.confidence >= min_confidence]
+            object_detector, feature_extractor, seq_info,
+            frame_idx, min_confidence, nms_max_overlap)
+
+        # detections = [d for d in detections if d.confidence >= min_confidence]
 
         # Run non-maxima suppression.
-        boxes = np.array([d.tlwh for d in detections])
-        scores = np.array([d.confidence for d in detections])
-        indices = preprocessing.non_max_suppression(
-            boxes, nms_max_overlap, scores)
-        detections = [detections[i] for i in indices]
+        # boxes = np.array([d.tlwh for d in detections])
+        # scores = np.array([d.confidence for d in detections])
+        # indices = preprocessing.non_max_suppression(
+        #     boxes, nms_max_overlap, scores)
+        # detections = [detections[i] for i in indices]
 
         # Update tracker.
         tracker.predict()
@@ -226,8 +243,7 @@ def parse_args():
         "--sequence_dir", help="Path to MOTChallenge sequence directory",
         default=None, required=True)
     parser.add_argument(
-        "--detection_file", help="Path to custom detections.", default=None,
-        required=True)
+        "--detection_file", help="Path to custom detections.", default=None)
     parser.add_argument(
         "--output_file", help="Path to the tracking output file. This file will"
         " contain the tracking results on completion.",
@@ -235,17 +251,17 @@ def parse_args():
     parser.add_argument(
         "--min_confidence", help="Detection confidence threshold. Disregard "
         "all detections that have a confidence lower than this value.",
-        default=0.8, type=float)
+        default=0.2, type=float)
     parser.add_argument(
         "--min_detection_height", help="Threshold on the detection bounding "
         "box height. Detections with height smaller than this value are "
         "disregarded", default=0, type=int)
     parser.add_argument(
         "--nms_max_overlap",  help="Non-maxima suppression threshold: Maximum "
-        "detection overlap.", default=1.0, type=float)
+        "detection overlap.", default=0.4, type=float)
     parser.add_argument(
         "--max_cosine_distance", help="Gating threshold for cosine distance "
-        "metric (object appearance).", type=float, default=0.2)
+        "metric (object appearance).", type=float, default=200)
     parser.add_argument(
         "--nn_budget", help="Maximum size of the appearance descriptors "
         "gallery. If None, no budget is enforced.", type=int, default=None)
@@ -257,7 +273,6 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    run(
-        args.sequence_dir, args.detection_file, args.output_file,
-        args.min_confidence, args.nms_max_overlap, args.min_detection_height,
+    run(args.sequence_dir, args.detection_file, args.output_file,
+        args.min_confidence, args.nms_max_overlap,
         args.max_cosine_distance, args.nn_budget, args.display)
