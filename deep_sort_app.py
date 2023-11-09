@@ -121,9 +121,13 @@ def create_detections(object_detector, feature_extractor,
     image = cv2.imread(
         seq_info["image_filenames"][frame_idx], cv2.IMREAD_COLOR)
 
+    clip_max = np.array(seq_info['image_size'][::-1]*2, dtype=np.int32)
+    clip_max = clip_max - 1
+
     dets = object_detector(image, conf_th, nms_th)
     for det in dets:
-        tlbr = det.to_tlbr().astype(np.int32)
+        tlbr = det.to_tlbr().astype(np.int32) - 1
+        tlbr = np.clip(tlbr, 0, clip_max)
         crop = image[tlbr[1]:tlbr[3], tlbr[0]:tlbr[2]]
         feature = feature_extractor(crop)
         det.set_feature(feature)
