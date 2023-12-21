@@ -6,9 +6,12 @@ import cv2
 
 class ObjectDetector:
 
-    def __init__(self, model_path, img_size, model_input_size=(640, 640)):
+    def __init__(self, model_path, quantized, img_size,
+                 model_input_size=(640, 640)):
 
-        self.engine = Engine(model=model_path)
+        self.engine = Engine(model=model_path, num_cores=1)
+        self.quantized = quantized
+
         self.transform = LetterBox(
             shape=img_size, new_shape=model_input_size)
 
@@ -17,7 +20,12 @@ class ObjectDetector:
         img = self.transform(img)
         img = img.transpose((2,0,1)) # whc -> cwh
         img = np.expand_dims(img, axis=0)
-        img = np.ascontiguousarray(img, dtype=np.float32) / 255.
+
+        if self.quantized: # use uint8
+            img = np.ascontiguousarray(img, dtype=np.uint8)
+
+        else: # use float32 and normalize
+            img = np.ascontiguousarray(img, dtype=np.float32) / 255.
 
         outputs = self.engine([img])[0].transpose((0, 2, 1))
 

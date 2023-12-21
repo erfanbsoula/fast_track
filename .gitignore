@@ -3,3 +3,5 @@
 
 # ignore MOT Challenge datasets
 MOT16/
+
+dnn_utils/models/
