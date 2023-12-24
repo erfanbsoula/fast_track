@@ -18,5 +18,7 @@ python ./TrackEval/scripts/run_mot_challenge.py \
     --BENCHMARK MOT16 \
     --SPLIT_TO_EVAL train \
     --TRACKERS_TO_EVAL fast_track \
+    --GT_FOLDER ./evaluation/ \
+    --TRACKERS_FOLDER ./evaluation/ \
     --METRICS CLEAR \
     --USE_PARALLEL False --NUM_PARALLEL_CORES 1
