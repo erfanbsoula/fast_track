@@ -1,7 +1,8 @@
 # ignore all __pycache__ directories across the project
 **/__pycache__/
 
-# ignore MOT Challenge datasets
+# ignore MOT Challenge dataset directory
 MOT16/
 
+# ignore models
 dnn_utils/models/
