@@ -2,7 +2,7 @@
 import numpy as np
 import colorsys
 from .image_viewer import ImageViewer
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 def create_unique_color_float(tag, hue_step=0.41):
     """Create a unique RGB color code for a given track id (tag).
@@ -76,11 +76,7 @@ class NoVisualization(object):
         pass
 
     def run(self, frame_callback):
-        iterable = tqdm(
-            range(self.first_idx, self.last_idx+1),
-            bar_format='{l_bar}{bar:30}{r_bar}'
-        )
-        for frame_indx in iterable:
+        for frame_indx in tqdm(range(self.first_idx, self.last_idx+1)):
             frame_callback(self, frame_indx)
 
 class Visualization(object):

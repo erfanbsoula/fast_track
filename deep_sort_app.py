@@ -221,7 +221,7 @@ def run(sequence_dir, detector_path, quantized, reid_path, output_file,
     finish = time()
 
     total_frames = seq_info["max_frame_idx"] - seq_info["min_frame_idx"] + 1
-    fps = (finish - start) / total_frames
+    fps = total_frames / (finish - start)
     print(f"fps: {fps:.1f}")
 
     # Store results.
