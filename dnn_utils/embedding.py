@@ -16,8 +16,9 @@ class FeatureExtractor:
         self.use_pytorch = use_pytorch
 
         if use_pytorch: # convert onnx to pytorch model
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            engine = convert(model_path).to(device)
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.device = torch.device(self.device)
+            engine = convert(model_path).to(self.device)
             self.engine = engine.eval()
 
         else: # use the default deepsparse engine
@@ -38,8 +39,8 @@ class FeatureExtractor:
 
         if self.use_pytorch:
             with torch.no_grad():
-                outputs = self.engine(torch.tensor(img)).cpu()
-                outputs = outputs.numpy()[0]
+                outputs = self.engine(torch.tensor(img, device=self.device))
+                outputs = outputs.cpu().numpy()[0]
 
         else:
             outputs = self.engine([img])[0][0]
