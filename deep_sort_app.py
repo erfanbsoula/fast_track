@@ -136,9 +136,9 @@ def create_detections(object_detector, feature_extractor,
     return dets
 
 
-def run(sequence_dir, detector_path, quantized, reid_path, output_file,
-        min_confidence, nms_max_overlap, max_feature_distance,
-        nn_budget, display):
+def run(sequence_dir, detector_path, quantized, use_pytorch,
+        reid_path, output_file, min_confidence, nms_max_overlap,
+        max_feature_distance, nn_budget, display):
     """Run multi-target tracker on a particular sequence.
 
     Parameters
@@ -170,11 +170,13 @@ def run(sequence_dir, detector_path, quantized, reid_path, output_file,
     seq_info = gather_sequence_info(sequence_dir)
 
     object_detector = ObjectDetector(
-        model_path=detector_path, quantized=quantized,
+        model_path=detector_path, quantized=quantized, use_pytorch=use_pytorch,
         img_size=(seq_info['image_size'][1], seq_info['image_size'][0])
     )
 
-    feature_extractor = FeatureExtractor(model_path=reid_path)
+    feature_extractor = FeatureExtractor(
+        model_path=reid_path, use_pytorch=use_pytorch
+    )
 
     metric = nn_matching.NearestNeighborDistanceMetric(
         "euclidean", max_feature_distance, nn_budget)
@@ -250,6 +252,9 @@ def parse_args():
         "--quantized", help="The object detector is quantized.",
         default=False, type=bool_string)
     parser.add_argument(
+        "--use_pytorch", help="Use pytorch to run the model.",
+        default=False, type=bool_string)
+    parser.add_argument(
         "--reid_path", help="Path to custom ReID network.", default=None)
     parser.add_argument(
         "--output_file", help="Path to the tracking output file. This file will"
@@ -276,6 +281,7 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    run(args.sequence_dir, args.detector_path, args.quantized, args.reid_path,
-        args.output_file, args.min_confidence, args.nms_max_overlap,
+    run(args.sequence_dir, args.detector_path, args.quantized,
+        args.use_pytorch, args.reid_path, args.output_file,
+        args.min_confidence, args.nms_max_overlap,
         args.max_feature_distance, args.nn_budget, args.display)

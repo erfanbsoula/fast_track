@@ -26,7 +26,7 @@ class ObjectDetector:
         self.transform = LetterBox(
             shape=img_size, new_shape=model_input_size)
 
-    def __call__(self, img, conf_th=0.5, nms_th=0.7):
+    def __call__(self, img, conf_th=0.5, nms_th=0.5):
 
         img = self.transform(img)
         img = img.transpose((2,0,1)) # whc -> cwh

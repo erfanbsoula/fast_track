@@ -21,7 +21,7 @@ def draw_prediction(img, tlbr):
 
 t1 = time.time()
 for i in range(10):
-    dets = object_detector(img)
+    dets = object_detector(img, nms_th=0.8)
 print(time.time()-t1)
 
 img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
