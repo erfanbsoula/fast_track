@@ -11,7 +11,7 @@ img = np.array(img, dtype=np.uint8)
 
 object_detector = ObjectDetector(
     model_path='dnn_utils/models/yolov8-m-coco-base.onnx',
-    quantized=False,
+    quantized=False, use_pytorch=True,
     img_size=(img.shape[1], img.shape[0])
 )
 
