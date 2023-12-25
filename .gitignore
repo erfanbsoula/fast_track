@@ -7,6 +7,5 @@ MOT16/
 # ignore models
 dnn_utils/models/
 
-evaluation/MOT16-train/fast_track/**
-evaluation/MOT16-train/fast_track/data/**
-!evaluation/MOT16-train/fast_track/data/
+# ignore tracking results
+evaluation/tracking_result/

@@ -3,6 +3,7 @@ from __future__ import division, print_function, absolute_import
 
 import argparse
 import os
+from time import time
 
 import cv2
 import numpy as np
@@ -135,8 +136,9 @@ def create_detections(object_detector, feature_extractor,
     return dets
 
 
-def run(sequence_dir, detection_file, output_file, min_confidence,
-        nms_max_overlap, max_distance, nn_budget, display):
+def run(sequence_dir, detector_path, quantized, reid_path, output_file,
+        min_confidence, nms_max_overlap, max_feature_distance,
+        nn_budget, display):
     """Run multi-target tracker on a particular sequence.
 
     Parameters
@@ -168,36 +170,25 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
     seq_info = gather_sequence_info(sequence_dir)
 
     object_detector = ObjectDetector(
-        model_path='dnn_utils/models/yolov8n_quant.onnx',
+        model_path=detector_path, quantized=quantized,
         img_size=(seq_info['image_size'][1], seq_info['image_size'][0])
     )
 
-    feature_extractor = FeatureExtractor(
-        model_path='dnn_utils/models/osnet_x0_25.onnx',
-    )
+    feature_extractor = FeatureExtractor(model_path=reid_path)
 
     metric = nn_matching.NearestNeighborDistanceMetric(
-        "euclidean", max_distance, nn_budget)
+        "euclidean", max_feature_distance, nn_budget)
 
     tracker = Tracker(metric)
     results = []
 
     def frame_callback(vis, frame_idx):
-        print("Processing frame %05d" % frame_idx)
+        # print("Processing frame %05d" % frame_idx)
 
         # Load image and generate detections.
         detections = create_detections(
             object_detector, feature_extractor, seq_info,
             frame_idx, min_confidence, nms_max_overlap)
-
-        # detections = [d for d in detections if d.confidence >= min_confidence]
-
-        # Run non-maxima suppression.
-        # boxes = np.array([d.tlwh for d in detections])
-        # scores = np.array([d.confidence for d in detections])
-        # indices = preprocessing.non_max_suppression(
-        #     boxes, nms_max_overlap, scores)
-        # detections = [detections[i] for i in indices]
 
         # Update tracker.
         tracker.predict()
@@ -224,7 +215,14 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         visualizer = visualization.Visualization(seq_info, update_ms=5)
     else:
         visualizer = visualization.NoVisualization(seq_info)
+
+    start = time()
     visualizer.run(frame_callback)
+    finish = time()
+
+    total_frames = seq_info["max_frame_idx"] - seq_info["min_frame_idx"] + 1
+    fps = (finish - start) / total_frames
+    print(f"fps: {fps:.1f}")
 
     # Store results.
     f = open(output_file, 'w')
@@ -247,7 +245,12 @@ def parse_args():
         "--sequence_dir", help="Path to MOTChallenge sequence directory",
         default=None, required=True)
     parser.add_argument(
-        "--detection_file", help="Path to custom detections.", default=None)
+        "--detector_path", help="Path to custom object detector.", default=None)
+    parser.add_argument(
+        "--quantized", help="The object detector is quantized.",
+        default=False, type=bool_string)
+    parser.add_argument(
+        "--reid_path", help="Path to custom ReID network.", default=None)
     parser.add_argument(
         "--output_file", help="Path to the tracking output file. This file will"
         " contain the tracking results on completion.",
@@ -255,16 +258,12 @@ def parse_args():
     parser.add_argument(
         "--min_confidence", help="Detection confidence threshold. Disregard "
         "all detections that have a confidence lower than this value.",
-        default=0.2, type=float)
-    parser.add_argument(
-        "--min_detection_height", help="Threshold on the detection bounding "
-        "box height. Detections with height smaller than this value are "
-        "disregarded", default=0, type=int)
+        default=0.5, type=float)
     parser.add_argument(
         "--nms_max_overlap",  help="Non-maxima suppression threshold: Maximum "
-        "detection overlap.", default=0.4, type=float)
+        "detection overlap.", default=0.5, type=float)
     parser.add_argument(
-        "--max_cosine_distance", help="Gating threshold for cosine distance "
+        "--max_feature_distance", help="Gating threshold for feature distance "
         "metric (object appearance).", type=float, default=200)
     parser.add_argument(
         "--nn_budget", help="Maximum size of the appearance descriptors "
@@ -277,6 +276,6 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    run(args.sequence_dir, args.detection_file, args.output_file,
-        args.min_confidence, args.nms_max_overlap,
-        args.max_cosine_distance, args.nn_budget, args.display)
+    run(args.sequence_dir, args.detector_path, args.quantized, args.reid_path,
+        args.output_file, args.min_confidence, args.nms_max_overlap,
+        args.max_feature_distance, args.nn_budget, args.display)
