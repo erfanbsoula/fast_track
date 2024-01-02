@@ -6,6 +6,7 @@ MOT16/
 
 # ignore models
 dnn_utils/models/
+*.pt
 
 # ignore tracking results
 evaluation/tracking_result/

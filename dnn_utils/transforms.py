@@ -61,7 +61,8 @@ class LetterBox:
 
     def unbox(self, tlwh):
         """Convert detections to positions of original image"""
-        if len(tlwh) == 0:
+    
+        if len(tlwh) == 0: # there are no detections
             return tlwh
 
         return (tlwh - self.unboxing_bias) * self.unboxing_ratio
