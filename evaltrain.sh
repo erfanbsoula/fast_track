@@ -24,9 +24,10 @@ do
     python deep_sort_app.py \
         --sequence_dir ./MOT16/train/MOT16-$i \
         --detector_path ./dnn_utils/models/$1 \
-        --quantized $2 \
-        --use_pytorch $3 \
+        --engine $2 \
+        --quantized $3 \
         --reid_path ./dnn_utils/models/$4 \
+        --use_pytorch $5 \
         --output_file ./evaluation/tracking_result/MOT16-train/fast_track/data/MOT16-$i.txt \
         --min_confidence 0.4 \
         --nms_max_overlap 0.8 \

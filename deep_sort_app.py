@@ -15,7 +15,7 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 
 from dnn_utils.object_detection import ObjectDetector
-from dnn_utils.embedding import FeatureExtractor
+from dnn_utils.reidentification import FeatureExtractor
 
 def gather_sequence_info(sequence_dir):
     """Gather sequence information, such as image filenames, detections,
@@ -136,8 +136,9 @@ def create_detections(object_detector, feature_extractor,
     return dets
 
 
-def run(sequence_dir, detector_path, quantized, use_pytorch,
-        reid_path, output_file, min_confidence, nms_max_overlap,
+def run(sequence_dir, detector_path, engine, quantized,
+        reid_path, use_pytorch, output_file,
+        min_confidence, nms_max_overlap,
         max_feature_distance, nn_budget, display):
     """Run multi-target tracker on a particular sequence.
 
@@ -170,7 +171,7 @@ def run(sequence_dir, detector_path, quantized, use_pytorch,
     seq_info = gather_sequence_info(sequence_dir)
 
     object_detector = ObjectDetector(
-        model_path=detector_path, quantized=quantized, use_pytorch=use_pytorch,
+        engine=engine, model_path=detector_path, quantized=quantized,
         img_size=(seq_info['image_size'][1], seq_info['image_size'][0])
     )
 
@@ -249,13 +250,15 @@ def parse_args():
     parser.add_argument(
         "--detector_path", help="Path to custom object detector.", default=None)
     parser.add_argument(
+        "--engine", help="The engine for object detection.", default='yolo')
+    parser.add_argument(
         "--quantized", help="The object detector is quantized.",
         default=False, type=bool_string)
     parser.add_argument(
+        "--reid_path", help="Path to custom ReID network.", default=None)
+    parser.add_argument(
         "--use_pytorch", help="Use pytorch to run the model.",
         default=False, type=bool_string)
-    parser.add_argument(
-        "--reid_path", help="Path to custom ReID network.", default=None)
     parser.add_argument(
         "--output_file", help="Path to the tracking output file. This file will"
         " contain the tracking results on completion.",
@@ -281,7 +284,7 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    run(args.sequence_dir, args.detector_path, args.quantized,
-        args.use_pytorch, args.reid_path, args.output_file,
+    run(args.sequence_dir, args.detector_path, args.engine, args.quantized,
+        args.reid_path, args.use_pytorch, args.output_file,
         args.min_confidence, args.nms_max_overlap,
         args.max_feature_distance, args.nn_budget, args.display)

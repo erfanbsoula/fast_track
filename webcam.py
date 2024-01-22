@@ -2,21 +2,22 @@ import numpy as np
 import cv2
 import time
 from dnn_utils.object_detection import ObjectDetector
-from dnn_utils.embedding import FeatureExtractor
+from dnn_utils.reidentification import FeatureExtractor
 from deep_sort.tracker import Tracker
 from deep_sort.nn_matching import NearestNeighborDistanceMetric
 
-FRAME_RATE = 5
+FRAME_RATE = 6
 FRAME_DURATION = 1 / FRAME_RATE
-REID_BUDGET = 5
 
 object_detector = ObjectDetector(
-    model_path='dnn_utils/models/yolov8n_quant.onnx',
-    img_size=(640, 480)
+    engine='yolo',
+    model_path='dnn_utils/models/yolov8n.pt',
+    img_size=(320, 256)
 )
 
 feature_extractor = FeatureExtractor(
     model_path='dnn_utils/models/osnet_x0_25.onnx',
+    use_pytorch=False,
 )
 
 def draw_prediction(img, class_id, tlbr):
