@@ -21,6 +21,9 @@ class FeatureExtractor:
         self.model_input_size = model_input_size
 
     def __call__(self, frames):
+        
+        if len(frames) == 0:
+            return []
 
         imgs = []
 
