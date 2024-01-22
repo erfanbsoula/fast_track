@@ -16,8 +16,8 @@ object_detector = ObjectDetector(
 )
 
 feature_extractor = FeatureExtractor(
-    model_path='dnn_utils/models/osnet_x0_25.onnx',
-    use_pytorch=False,
+    model_path='dnn_utils/models/osnet_x0_25_market.onnx',
+    batch_size=1
 )
 
 def draw_prediction(img, class_id, tlbr):
@@ -61,9 +61,16 @@ while True:
         yolo.append(time.time()-tmp)
 
         tmp = time.time()
+
+        frames = []
         for det in dets:
             x1, y1, x2, y2 = np.maximum(0, det.to_tlbr().astype(np.int32))
-            det.set_feature(feature_extractor(frame[y1:y2, x1:x2]))
+            frames.append(frame[y1:y2, x1:x2])
+        
+        features = feature_extractor(frames)
+        for i, det in enumerate(dets):
+            det.set_feature(features[i])
+
         osnet.append(time.time()-tmp)
 
         tmp = time.time()
