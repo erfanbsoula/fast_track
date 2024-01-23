@@ -40,14 +40,15 @@ FRAME_RATE = 8
 FRAME_DURATION = 1 / FRAME_RATE
 
 object_detector = ObjectDetector(
-    engine='yolo',
+    engine='yolo', device='cpu',
     model_path='dnn_utils/models/yolov8n.pt',
-    img_size=(320, 256)
+    model_image_size=(320, 512),
 )
 
 feature_extractor = FeatureExtractor(
-    model_path='dnn_utils/models/osnet_x0_25_market.onnx',
-    batch_size=1
+    engine='torchreid', device='cpu',
+    model_name='osnet_x0_25',
+    model_path='dnn_utils/models/osnet_x0_25.pth'
 )
 
 def draw_prediction(img, class_id, tlbr):

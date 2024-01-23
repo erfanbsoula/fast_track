@@ -1,26 +1,72 @@
-from deepsparse import Engine
 import numpy as np
 import cv2
-
 
 class FeatureExtractor:
 
     mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
     std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
-    def __init__(self, model_path, batch_size=2,
-                 model_input_size=(128, 256)):
+    def __init__(self, engine, model_name, model_path,
+                 model_image_size=(256, 128), # (Height, Width)
+                 device='cpu', batch_size=2):
 
-        self.engine = Engine(
-            model=model_path,
-            num_cores=2,
-            batch_size=batch_size
-        )
+        assert isinstance(engine, str)
 
+        self.model_name = model_name
+        self.model_path = model_path
+        # convert model_image_size to (Width, Height) format
+        self.model_image_size = model_image_size[::-1]
+        self.device = device
         self.batch_size = batch_size
-        self.model_input_size = model_input_size
+
+        if engine == 'torchreid':
+            self.init_torchreid()
+
+        elif engine == 'deepsparse':
+            self.init_deepsparse()
+
+        else: raise Exception("unknown engine!")
+
+        self.engine_type = engine
+
 
     def __call__(self, frames):
+
+        return self.process(frames)
+
+
+    def init_torchreid(self):
+        
+        from torchreid.utils import FeatureExtractor as TorchreidFE
+
+        self.engine = TorchreidFE(
+            self.model_name, self.model_path,
+            image_size = self.model_image_size,
+            device = self.device
+        )
+
+        self.process = self.run_torchreid
+
+
+    def run_torchreid(self, frames):
+
+        return self.engine(frames).numpy()
+
+
+    def init_deepsparse(self):
+        
+        from deepsparse import Engine
+
+        self.engine = Engine(
+            model=self.model_path,
+            num_cores=2,
+            batch_size=self.batch_size
+        )
+
+        self.process = self.run_deepsparse
+
+
+    def run_deepsparse(self, frames):
         
         if len(frames) == 0:
             return []
@@ -30,7 +76,7 @@ class FeatureExtractor:
         for img in frames:
             imgs.append(
                 cv2.resize(
-                    img, self.model_input_size,
+                    img, self.model_image_size,
                     interpolation=cv2.INTER_LINEAR
                 )
             )
@@ -43,7 +89,8 @@ class FeatureExtractor:
         initial_batch_size = imgs.shape[0]
         if initial_batch_size % self.batch_size != 0:
             pad_size = self.batch_size - initial_batch_size % self.batch_size
-            imgs = np.pad(imgs, ((0, pad_size), 0, 0, 0), constant_values=0)
+            pad_size = ((0, pad_size), (0,0), (0,0), (0,0))
+            imgs = np.pad(imgs, pad_size, constant_values=0)
     
         imgs = np.ascontiguousarray(imgs, dtype=np.float32)
 

@@ -12,12 +12,15 @@ img = Image.open(image)
 img = np.array(img, dtype=np.uint8)
 
 object_detector = ObjectDetector(
-    engine='yolo',
-    model_path='dnn_utils/models/yolov8n.pt',
-    img_size=(640, 960)
+    engine='deepsparse', device='cpu',
+    model_path='dnn_utils/models/yolov8-n-coco-base.onnx',
+    input_image_size=img.shape[:2],
+    model_image_size=(640, 640),
 )
 
 feature_extractor = FeatureExtractor(
+    engine='deepsparse', device='cpu',
+    model_name='osnet_x0_25',
     model_path='dnn_utils/models/osnet_x0_25_market.onnx'
 )
 

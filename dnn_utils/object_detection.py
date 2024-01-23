@@ -5,19 +5,28 @@ import cv2
 
 class ObjectDetector:
 
-    def __init__(self, engine, model_path, img_size,
-                 model_input_size=(640, 640), quantized=False):
+    def __init__(self, engine, model_path,
+                 input_image_size=(640, 960), # (Height, Width)
+                 model_image_size=(640, 640), # (Height, Width)
+                 device='cpu', quantized=False):
 
         assert isinstance(engine, str)
 
+        self.model_path = model_path
+        self.input_image_size = input_image_size
+        self.model_image_size = model_image_size
+        self.device = device
+        self.quantized = quantized
+
         if engine == 'yolo':
-            self.init_yolo(model_path, img_size)
+            self.init_yolo()
 
         elif engine == 'deepsparse':
-            self.init_deepsparse(
-                model_path, quantized, img_size, model_input_size)
+            self.init_deepsparse()
 
         else: raise Exception("unknown engine!")
+
+        self.engine_type = engine
 
 
     def __call__(self, img, conf_th=0.5, nms_th=0.5):
@@ -25,13 +34,11 @@ class ObjectDetector:
         return self.process(img, conf_th, nms_th)
     
 
-    def init_yolo(self, model_path, img_size):
+    def init_yolo(self):
         
         from ultralytics import YOLO
 
-        self.engine = YOLO(model_path)
-
-        self.imgsz = img_size
+        self.engine = YOLO(self.model_path)
 
         self.process = self.run_yolo
 
@@ -39,8 +46,8 @@ class ObjectDetector:
     def run_yolo(self, img, conf_th, nms_th):
 
         res = self.engine(
-            img, imgsz=self.imgsz, conf=conf_th, iou=nms_th,
-            verbose=False
+            img, imgsz = self.model_image_size,
+            conf=conf_th, iou=nms_th, verbose=False
         )
 
         res = res[0]
@@ -58,17 +65,20 @@ class ObjectDetector:
         return detections
 
 
-    def init_deepsparse(self, model_path, quantized, img_size,
-                        model_input_size):
+    def init_deepsparse(self):
 
         from deepsparse import Engine
 
-        self.engine = Engine(model=model_path, num_cores=1)
+        self.engine = Engine(
+            model = self.model_path,
+            num_cores=1
+        )
 
-        self.quantized = quantized
-        self.dtype = np.uint8 if quantized else np.float32
+        self.dtype = np.uint8 if self.quantized else np.float32
         self.transform = LetterBox(
-            shape=img_size[::-1], new_shape=model_input_size)
+            shape = self.input_image_size[::-1],
+            new_shape = self.model_image_size
+        )
 
         self.process = self.run_deepsparse
 

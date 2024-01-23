@@ -6,7 +6,15 @@ class LetterBox:
 
     def __init__(self, shape, new_shape=(640, 640), fill_value=(0, 0, 0),
                  scaleFill=False, scaleup=True, center=True):
-        """Initialize LetterBox object with specific parameters."""
+        """Initialize LetterBox object with specific parameters.
+        
+        Parameters
+        ----------
+        shape : ArrayLike
+            shape of the input images in (Width, Height) fromat.
+        new_shape : ArrayLike
+            shape of the output images in (Width, Height) fromat.
+        """
 
         self.shape = shape
         self.new_shape = new_shape
@@ -34,7 +42,7 @@ class LetterBox:
         top, bottom = int(round(dh - 0.1)) if self.center else 0, int(round(dh + 0.1))
         left, right = int(round(dw - 0.1)) if self.center else 0, int(round(dw + 0.1))
 
-        self.new_unpad = new_unpad
+        self.new_unpad = new_unpad # (Width, Height)
         self.top, self.bottom = top, bottom
         self.left, self.right = left, right
 
