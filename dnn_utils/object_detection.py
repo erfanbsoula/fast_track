@@ -8,7 +8,8 @@ class ObjectDetector:
     def __init__(self, engine, model_path,
                  input_image_size=(640, 960), # (Height, Width)
                  model_image_size=(640, 640), # (Height, Width)
-                 device='cpu', quantized=False):
+                 device='cpu', quantized=False,
+                 human_cls_id=0):
 
         assert isinstance(engine, str)
 
@@ -17,6 +18,7 @@ class ObjectDetector:
         self.model_image_size = model_image_size
         self.device = device
         self.quantized = quantized
+        self.human_cls_id = human_cls_id
 
         if engine == 'yolo':
             self.init_yolo()
@@ -35,10 +37,11 @@ class ObjectDetector:
     
 
     def init_yolo(self):
-        
+
         from ultralytics import YOLO
 
         self.engine = YOLO(self.model_path)
+        self.engine.fuse()
 
         self.process = self.run_yolo
 
@@ -52,7 +55,7 @@ class ObjectDetector:
 
         res = res[0]
 
-        indices = res.boxes.cls == 0
+        indices = res.boxes.cls == self.human_cls_id
         boxes = res.boxes.xywh[indices].cpu().numpy()
         confs = res.boxes.conf[indices].cpu().numpy()
 
@@ -103,7 +106,7 @@ class ObjectDetector:
             scores = detection[4:]
             class_id = np.argmax(scores)
             confidence = scores[class_id]
-            if confidence > conf_th and class_id == 0:
+            if confidence > conf_th and class_id == self.human_cls_id:
                 x = int(detection[0] - detection[2]/2)
                 y = int(detection[1] - detection[3]/2)
                 w = int(detection[2])

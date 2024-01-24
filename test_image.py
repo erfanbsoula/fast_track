@@ -16,6 +16,7 @@ object_detector = ObjectDetector(
     model_path='dnn_utils/models/yolov8-n-coco-base.onnx',
     input_image_size=img.shape[:2],
     model_image_size=(640, 640),
+    human_cls_id=0
 )
 
 feature_extractor = FeatureExtractor(
