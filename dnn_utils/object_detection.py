@@ -12,6 +12,8 @@ class ObjectDetector:
                  human_cls_id=0):
 
         assert isinstance(engine, str)
+        assert engine in ['yolo', 'deepsparse']
+        assert device in ['cpu', 'cuda']
 
         self.model_path = model_path
         self.input_image_size = input_image_size
@@ -24,6 +26,9 @@ class ObjectDetector:
             self.init_yolo()
 
         elif engine == 'deepsparse':
+            if device != 'cpu':
+                raise Exception('deepsparse only aupports cpu.')
+
             self.init_deepsparse()
 
         else: raise Exception("unknown engine!")
@@ -40,7 +45,7 @@ class ObjectDetector:
 
         from ultralytics import YOLO
 
-        self.engine = YOLO(self.model_path)
+        self.engine = YOLO(self.model_path).to(self.device)
         self.engine.fuse()
 
         self.process = self.run_yolo

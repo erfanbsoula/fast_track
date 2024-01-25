@@ -126,61 +126,60 @@ def create_detections(object_detector, feature_extractor,
     clip_max = clip_max - 1
 
     dets = object_detector(image, conf_th, nms_th)
+
+    frames = []
     for det in dets:
-        tlbr = det.to_tlbr().astype(np.int32) - 1
+        tlbr = det.to_tlbr().astype(np.int32)
         tlbr = np.clip(tlbr, 0, clip_max)
-        crop = image[tlbr[1]:tlbr[3], tlbr[0]:tlbr[2]]
-        feature = feature_extractor(crop)
-        det.set_feature(feature)
+        x1, y1, x2, y2 = tlbr
+        frames.append(image[y1:y2, x1:x2])
+
+    features = feature_extractor(frames)
+    for i, det in enumerate(dets):
+        det.set_feature(features[i])
 
     return dets
 
 
-def run(sequence_dir, detector_path, engine, quantized,
-        reid_path, use_pytorch, output_file,
-        min_confidence, nms_max_overlap,
-        max_feature_distance, nn_budget, display):
+def run(args):
     """Run multi-target tracker on a particular sequence.
 
     Parameters
     ----------
-    sequence_dir : str
-        Path to the MOTChallenge sequence directory.
-    detection_file : str
-        Path to the detections file.
-    output_file : str
-        Path to the tracking output file. This file will contain the tracking
-        results on completion.
-    min_confidence : float
-        Detection confidence threshold. Disregard all detections that have
-        a confidence lower than this value.
-    nms_max_overlap: float
-        Maximum detection overlap (non-maxima suppression threshold).
-    min_detection_height : int
-        Detection height threshold. Disregard all detections that have
-        a height lower than this value.
-    max_cosine_distance : float
-        Gating threshold for cosine distance metric (object appearance).
-    nn_budget : Optional[int]
-        Maximum size of the appearance descriptor gallery. If None, no budget
-        is enforced.
-    display : bool
-        If True, show visualization of intermediate tracking results.
-
+    args : dict
+        Configuration dictionary.
     """
-    seq_info = gather_sequence_info(sequence_dir)
+    seq_info = gather_sequence_info(args['sequence_dir'])
+
+    image_size = [
+        round(seq_info['image_size'][0] / 32) * 32,
+        round(seq_info['image_size'][1] / 32) * 32,
+    ]
+
+    print(seq_info["image_size"])
 
     object_detector = ObjectDetector(
-        engine=engine, model_path=detector_path, quantized=quantized,
-        img_size=(seq_info['image_size'][1], seq_info['image_size'][0])
+        engine=args['detector_engine'],
+        model_path=args['detector_path'],
+        input_image_size=image_size,
+        model_image_size=image_size,
+        quantized=args['quantized'],
+        device=args['device'],
+        human_cls_id=1
     )
 
     feature_extractor = FeatureExtractor(
-        model_path=reid_path, use_pytorch=use_pytorch
+        engine=args['reid_engine'],
+        model_name=args['reid_model'],
+        model_path=args['reid_path'],
+        device=args['device']
     )
 
     metric = nn_matching.NearestNeighborDistanceMetric(
-        "euclidean", max_feature_distance, nn_budget)
+        "euclidean",
+        args['max_feature_distance'],
+        args['max_gallery_size']
+    )
 
     tracker = Tracker(metric)
     results = []
@@ -191,14 +190,15 @@ def run(sequence_dir, detector_path, engine, quantized,
         # Load image and generate detections.
         detections = create_detections(
             object_detector, feature_extractor, seq_info,
-            frame_idx, min_confidence, nms_max_overlap)
+            frame_idx, args['min_confidence'], args['nms_max_overlap']
+        )
 
         # Update tracker.
         tracker.predict()
         tracker.update(detections)
 
         # Update visualization.
-        if display:
+        if args['display']:
             image = cv2.imread(
                 seq_info["image_filenames"][frame_idx], cv2.IMREAD_COLOR)
             vis.set_image(image.copy())
@@ -214,7 +214,7 @@ def run(sequence_dir, detector_path, engine, quantized,
                 frame_idx, track.track_id, bbox[0], bbox[1], bbox[2], bbox[3]])
 
     # Run tracker.
-    if display:
+    if args['display']:
         visualizer = visualization.Visualization(seq_info, update_ms=5)
     else:
         visualizer = visualization.NoVisualization(seq_info)
@@ -228,7 +228,7 @@ def run(sequence_dir, detector_path, engine, quantized,
     print(f"fps: {fps:.1f}")
 
     # Store results.
-    f = open(output_file, 'w')
+    f = open(args['output_file'], 'w')
     for row in results:
         print('%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1' % (
             row[0], row[1], row[2], row[3], row[4], row[5]),file=f)
@@ -244,47 +244,85 @@ def parse_args():
     """ Parse command line arguments.
     """
     parser = argparse.ArgumentParser(description="Deep SORT")
+
     parser.add_argument(
-        "--sequence_dir", help="Path to MOTChallenge sequence directory",
-        default=None, required=True)
+        "--sequence_dir",
+        help="Path to MOTChallenge sequence directory",
+        default=None, required=True
+    )
     parser.add_argument(
-        "--detector_path", help="Path to custom object detector.", default=None)
+        "--device",
+        help="The device to run Neural Network inference (cuda | cpu)",
+        default='cuda'
+    )
     parser.add_argument(
-        "--engine", help="The engine for object detection.", default='yolo')
+        "--detector_path",
+        help="Path to custom object detector",
+        default='./dnn_utils/models/yolov8s_crowdhuman.pt'
+    )
     parser.add_argument(
-        "--quantized", help="The object detector is quantized.",
-        default=False, type=bool_string)
+        "--detector_engine",
+        help="The engine for running object detection",
+        default='yolo'
+    )
     parser.add_argument(
-        "--reid_path", help="Path to custom ReID network.", default=None)
+        "--quantized",
+        help="Shows the object detector is quantized",
+        action='store_true'
+    )
     parser.add_argument(
-        "--use_pytorch", help="Use pytorch to run the model.",
-        default=False, type=bool_string)
+        "--reid_model",
+        help="Model name of the custom ReID network",
+        default='osnet_x0_25'
+    )
     parser.add_argument(
-        "--output_file", help="Path to the tracking output file. This file will"
-        " contain the tracking results on completion.",
-        default="/tmp/hypotheses.txt")
+        "--reid_path",
+        help="Path to custom ReID network",
+        default='./dnn_utils/models/osnet_x0_25_market.pth'
+    )
     parser.add_argument(
-        "--min_confidence", help="Detection confidence threshold. Disregard "
-        "all detections that have a confidence lower than this value.",
-        default=0.5, type=float)
+        "--reid_engine",
+        help="The engine for running ReID network",
+        default='torchreid'
+    )
     parser.add_argument(
-        "--nms_max_overlap",  help="Non-maxima suppression threshold: Maximum "
-        "detection overlap.", default=0.5, type=float)
+        "--output_file",
+        help="Path to the tracking output file. This file will " \
+             "contain the tracking results on completion.",
+        default="./tmp/hypothesis.txt"
+    )
     parser.add_argument(
-        "--max_feature_distance", help="Gating threshold for feature distance "
-        "metric (object appearance).", type=float, default=200)
+        "--min_confidence",
+        help="Detection confidence threshold. Discard detections " \
+             "that have a confidence lower than this value.",
+        type=float, default=0.25
+    )
     parser.add_argument(
-        "--nn_budget", help="Maximum size of the appearance descriptors "
-        "gallery. If None, no budget is enforced.", type=int, default=None)
+        "--nms_max_overlap", 
+        help="Non-maximum suppression threshold. Discard detections " \
+             "that overlap with an IoU more than this value.",
+        type=float, default=0.7
+    )
     parser.add_argument(
-        "--display", help="Show intermediate tracking results",
-        default=True, type=bool_string)
-    return parser.parse_args()
+        "--max_feature_distance",
+        help="Gating threshold for appearance feature distance. " \
+             "Longer distances will not be considered in appearance matching.",
+        type=float, default=200.
+    )
+    parser.add_argument(
+        "--max_gallery_size",
+        help="Maximum size of the appearance descriptor gallery."
+             "If None, no budget is enforced.",
+        type=int, default=30
+    )
+    parser.add_argument(
+        "--display",
+        help="Show intermediate tracking results",
+        action='store_true'
+    )
+    return vars(parser.parse_args())
 
 
 if __name__ == "__main__":
     args = parse_args()
-    run(args.sequence_dir, args.detector_path, args.engine, args.quantized,
-        args.reid_path, args.use_pytorch, args.output_file,
-        args.min_confidence, args.nms_max_overlap,
-        args.max_feature_distance, args.nn_budget, args.display)
+    run(args)

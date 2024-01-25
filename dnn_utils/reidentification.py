@@ -11,6 +11,8 @@ class FeatureExtractor:
                  device='cpu', batch_size=2):
 
         assert isinstance(engine, str)
+        assert engine in ['torchreid', 'deepsparse']
+        assert device in ['cpu', 'cuda']
 
         self.model_name = model_name
         self.model_path = model_path
@@ -23,6 +25,9 @@ class FeatureExtractor:
             self.init_torchreid()
 
         elif engine == 'deepsparse':
+            if device != 'cpu':
+                raise Exception('deepsparse only aupports cpu.')
+
             self.init_deepsparse()
 
         else: raise Exception("unknown engine!")
