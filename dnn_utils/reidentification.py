@@ -55,7 +55,7 @@ class FeatureExtractor:
 
     def run_torchreid(self, frames):
 
-        return self.engine(frames).numpy()
+        return self.engine(frames).cpu().numpy()
 
 
     def init_deepsparse(self):
