@@ -1,11 +1,19 @@
 # vim: expandtab:ts=4:sw=4
 from __future__ import absolute_import
+import os
 import numpy as np
 from . import kalman_filter
 from . import linear_assignment
 from . import iou_matching
 from .track import Track
+from .nn_matching import _pdist
 
+database = './database/ids.npy'
+
+if os.path.isfile(database):
+    known_ids = np.load(database)
+else:
+    known_ids = np.empty(shape=(0, 512), dtype=np.float32)
 
 class Tracker:
     """
@@ -45,7 +53,7 @@ class Tracker:
 
         self.kf = kalman_filter.KalmanFilter()
         self.tracks = []
-        self._next_id = 1
+        self._next_id = 6
 
     def predict(self):
         """Propagate track state distributions one time step forward.
@@ -80,15 +88,28 @@ class Tracker:
 
         # Update distance metric.
         active_targets = [t.track_id for t in self.tracks if t.is_confirmed()]
-        features, targets = [], []
-        for track in self.tracks:
+        features, targets, indices = [], [], []
+        for i, track in enumerate(self.tracks):
             if not track.is_confirmed():
                 continue
             features += track.features
             targets += [track.track_id for _ in track.features]
+            indices += [i for _ in track.features]
             track.features = []
-        self.metric.partial_fit(
-            np.asarray(features), np.asarray(targets), active_targets)
+
+        features = np.asarray(features)
+        targets = np.asarray(targets)
+
+        if len(features) != 0 and len(known_ids) != 0:
+            dists = _pdist(known_ids, features)
+            argmins = dists.argmin(axis=1)
+
+            for i in range(len(known_ids)):
+                if dists[i, argmins[i]] < 60:
+                    self.tracks[indices[argmins[i]]].known_id = i+1
+
+        self.metric.partial_fit(features, targets, active_targets)
+
 
     def _match(self, detections):
 

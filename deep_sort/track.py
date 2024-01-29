@@ -71,6 +71,7 @@ class Track:
         self.hits = 1
         self.age = 1
         self.time_since_update = 0
+        self.known_id = track_id
 
         self.state = TrackState.Tentative
         self.features = []

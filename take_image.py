@@ -50,6 +50,8 @@ prev_time_point = 0
 proc_duration = 0
 capture = cv2.VideoCapture(0)
 
+t_global = time.time()
+
 while True:
 
     t_loop_start = time.time()
@@ -66,17 +68,21 @@ while True:
 
         keypress = cv2.waitKey(1) & 0xFF
 
-        if keypress == ord('t'):
+        # if keypress == ord('t'):
+        if t_loop_start - t_global > 5:
 
             tlbr = dets[0].to_tlbr().astype(np.int32)
             tlbr = np.clip(tlbr, 0, clip_max)
             x1, y1, x2, y2 = tlbr
             imgs = [frame[y1:y2, x1:x2]]
+            print(imgs[0].shape)
             cv2.imshow("image taken", imgs[0])
             feature_new = feature_extractor(imgs)
             features = np.concatenate((features, feature_new), axis=0)
             features = features[-5:]
             np.save(database, features, allow_pickle=False)
+            time.sleep(5)
+            break
 
         elif keypress == ord('x'):
             break
