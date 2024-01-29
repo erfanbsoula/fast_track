@@ -5,7 +5,8 @@
 MOT16/
 
 # ignore models
-dnn_utils/models/
+dnn_utils/models/*
+!dnn_utils/models/.gitkeep
 *.pt
 
 # ignore tracking results

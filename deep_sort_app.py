@@ -165,7 +165,7 @@ def run(args):
         model_image_size=image_size,
         quantized=args['quantized'],
         device=args['device'],
-        human_cls_id=1
+        target_cls=args.target_cls
     )
 
     feature_extractor = FeatureExtractor(
@@ -258,7 +258,7 @@ def parse_args():
     parser.add_argument(
         "--detector_path",
         help="Path to custom object detector",
-        default='./dnn_utils/models/yolov8s_crowdhuman.pt'
+        default='./dnn_utils/models/yolov8n_crowdhuman.pt'
     )
     parser.add_argument(
         "--detector_engine",
@@ -269,6 +269,11 @@ def parse_args():
         "--quantized",
         help="Shows the object detector is quantized",
         action='store_true'
+    )
+    parser.add_argument(
+        "--target_cls",
+        help="Target object class for tracking.",
+        type=int, default=1
     )
     parser.add_argument(
         "--reid_model",
@@ -295,7 +300,7 @@ def parse_args():
         "--min_confidence",
         help="Detection confidence threshold. Discard detections " \
              "that have a confidence lower than this value.",
-        type=float, default=0.25
+        type=float, default=0.5
     )
     parser.add_argument(
         "--nms_max_overlap", 
@@ -307,7 +312,7 @@ def parse_args():
         "--max_feature_distance",
         help="Gating threshold for appearance feature distance. " \
              "Longer distances will not be considered in appearance matching.",
-        type=float, default=200.
+        type=float, default=120.
     )
     parser.add_argument(
         "--max_gallery_size",

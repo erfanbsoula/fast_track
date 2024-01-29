@@ -8,7 +8,7 @@ from deep_sort.tracker import Tracker
 from deep_sort.nn_matching import NearestNeighborDistanceMetric
 
 
-FRAME_RATE = 8
+FRAME_RATE = 5
 FRAME_DURATION = 1 / FRAME_RATE
 
 object_detector = ObjectDetector(
@@ -24,6 +24,20 @@ feature_extractor = FeatureExtractor(
     model_path='dnn_utils/models/osnet_x0_25_market.pth'
 )
 
+database = 'database/ids.npy'
+
+if os.path.isfile(database):
+    features = np.load(database)
+else:
+    features = np.empty(shape=(0, 512), dtype=np.float32)
+
+def get_area(det):
+
+    tlbr = det.to_tlbr().astype(np.int32)
+    x1, y1, x2, y2 = tlbr
+    return abs(x2 - x1) * abs(y2 - y1)
+
+
 def draw_prediction(img, class_id, tlbr):
 
     label = str(class_id)
@@ -31,25 +45,6 @@ def draw_prediction(img, class_id, tlbr):
     cv2.rectangle(img, tlbr[:2], tlbr[2:], color, 2)
     cv2.putText(img, label, (tlbr[0]+5, tlbr[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-fps = []
-yolo = []
-osnet = []
-track_time = []
-
-def display_stats():
-    print('fps:', sum(fps)/len(fps))
-    print('avg yolo time:', sum(yolo)/len(yolo))
-    print('avg reid time:', sum(osnet)/len(osnet))
-    print('avg tracker time:', sum(track_time)/len(track_time))
-
-
-metric = NearestNeighborDistanceMetric(
-    metric='euclidean',
-    matching_threshold=120,
-    budget=40
-)
-
-tracker = Tracker(metric)
 
 prev_time_point = 0
 proc_duration = 0
@@ -63,50 +58,36 @@ while True:
 
     if time_elapsed >= FRAME_DURATION - proc_duration:
 
-        tmp = time.time()
-        dets = object_detector(frame)
-        yolo.append(time.time()-tmp)
-
-        tmp = time.time()
+        dets = object_detector(frame, nms_th=0.7)
+        dets = sorted(dets, key=get_area, reverse=True)
 
         clip_max = np.array([frame.shape[1], frame.shape[0]]*2, dtype=np.int32)
         clip_max = clip_max - 1
 
-        frames = []
-        for det in dets:
-            tlbr = det.to_tlbr().astype(np.int32)
+        keypress = cv2.waitKey(1) & 0xFF
+
+        if keypress == ord('t'):
+
+            tlbr = dets[0].to_tlbr().astype(np.int32)
             tlbr = np.clip(tlbr, 0, clip_max)
             x1, y1, x2, y2 = tlbr
-            frames.append(frame[y1:y2, x1:x2])
+            imgs = [frame[y1:y2, x1:x2]]
+            cv2.imshow("image taken", imgs[0])
+            feature_new = feature_extractor(imgs)
+            features = np.concatenate((features, feature_new), axis=0)
+            features = features[-5:]
+            np.save(database, features, allow_pickle=False)
 
-        features = feature_extractor(frames)
-        for i, det in enumerate(dets):
-            det.set_feature(features[i])
+        elif keypress == ord('x'):
+            break
 
-        osnet.append(time.time()-tmp)
-
-        tmp = time.time()
-        tracker.update(dets)
-
-        for track in tracker.tracks:
-            if not track.is_confirmed() or track.time_since_update > 1:
-                continue
-
-            draw_prediction(frame, track.track_id, track.to_tlbr().astype(np.int32))
-
-
-        tracker.predict()
-        track_time.append(time.time()-tmp)
-
+        draw_prediction(frame, 0, dets[0].to_tlbr().astype(np.int32))
         cv2.imshow("object detection", frame)
+
         t_now = time.time()
-        fps.append(1/(t_now-prev_time_point))
         prev_time_point = t_now
         proc_duration = t_now - t_loop_start + 0.001
 
-    if cv2.waitKey(1) & 0xFF == ord('x'):
-        display_stats()
-        break
 
 capture.release()
 cv2.destroyAllWindows()

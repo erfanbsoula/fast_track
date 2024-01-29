@@ -16,13 +16,13 @@ object_detector = ObjectDetector(
     model_path='dnn_utils/models/yolov8-n-coco-base.onnx',
     input_image_size=img.shape[:2],
     model_image_size=(640, 640),
-    human_cls_id=0
+    target_cls=0
 )
 
 feature_extractor = FeatureExtractor(
     engine='deepsparse', device='cpu',
     model_name='osnet_x0_25',
-    model_path='dnn_utils/models/osnet_x0_25_market.onnx'
+    model_path='dnn_utils/models/osnet_x0_25_market.onnx',
 )
 
 def draw_prediction(img, tlbr):
@@ -33,14 +33,11 @@ n_iterations = 1
 t = time.time()
 
 for i in range(n_iterations):
-    dets = object_detector(img, conf_th=0.25, nms_th=0.75)
+    dets = object_detector(img, conf_th=0.25, nms_th=0.7)
 
 t = (time.time() - t) / n_iterations
-print(f'average inference time: {t:.3f}')
+print(f'average object detection time: {t*1000:.1f} ms')
 print(f'detecttion count: {len(dets)}')
-
-n_iterations = 1
-t = time.time()
 
 frames = []
 
@@ -48,11 +45,14 @@ for det in dets:
     x1, y1, x2, y2 = np.maximum(0, det.to_tlbr().astype(np.int32))
     frames.append(img[y1:y2, x1:x2])
 
+n_iterations = 1
+t = time.time()
+
 for i in range(n_iterations):
     features = feature_extractor(frames)
 
 t = (time.time() - t) / len(frames) / n_iterations
-print(f'average extraction time per img: {t:.3f}')
+print(f'average extraction time per img: {t*1000:.1f} ms')
 
 print(np.array(features).shape)
 

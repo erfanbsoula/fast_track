@@ -17,7 +17,8 @@ chi2inv95 = {
     6: 12.592,
     7: 14.067,
     8: 15.507,
-    9: 16.919}
+    9: 16.919
+}
 
 
 class KalmanFilter(object):
@@ -51,8 +52,8 @@ class KalmanFilter(object):
         # the model. This is a bit hacky.
         # self._std_weight_position = 1. / 20
         # self._std_weight_velocity = 1. / 160
-        self._std_weight_position = 5.
-        self._std_weight_velocity = 1. / 20
+        self._std_weight_position = 1. / 20
+        self._std_weight_velocity = 1. / 160
 
     def initiate(self, measurement):
         """Create track from unassociated measurement.

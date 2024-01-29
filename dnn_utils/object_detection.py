@@ -9,7 +9,7 @@ class ObjectDetector:
                  input_image_size=(640, 960), # (Height, Width)
                  model_image_size=(640, 640), # (Height, Width)
                  device='cpu', quantized=False,
-                 human_cls_id=0):
+                 target_cls=0):
 
         assert isinstance(engine, str)
         assert engine in ['yolo', 'deepsparse']
@@ -20,7 +20,7 @@ class ObjectDetector:
         self.model_image_size = model_image_size
         self.device = device
         self.quantized = quantized
-        self.human_cls_id = human_cls_id
+        self.target_cls = target_cls
 
         if engine == 'yolo':
             self.init_yolo()
@@ -60,7 +60,7 @@ class ObjectDetector:
 
         res = res[0]
 
-        indices = res.boxes.cls == self.human_cls_id
+        indices = res.boxes.cls == self.target_cls
         boxes = res.boxes.xywh[indices].cpu().numpy()
         confs = res.boxes.conf[indices].cpu().numpy()
 
@@ -79,7 +79,7 @@ class ObjectDetector:
 
         self.engine = Engine(
             model = self.model_path,
-            num_cores=1
+            num_cores=2
         )
 
         self.dtype = np.uint8 if self.quantized else np.float32
@@ -111,7 +111,7 @@ class ObjectDetector:
             scores = detection[4:]
             class_id = np.argmax(scores)
             confidence = scores[class_id]
-            if confidence > conf_th and class_id == self.human_cls_id:
+            if confidence > conf_th and class_id == self.target_cls:
                 x = int(detection[0] - detection[2]/2)
                 y = int(detection[1] - detection[3]/2)
                 w = int(detection[2])

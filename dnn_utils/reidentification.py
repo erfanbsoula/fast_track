@@ -59,7 +59,7 @@ class FeatureExtractor:
 
 
     def init_deepsparse(self):
-        
+
         from deepsparse import Engine
 
         self.engine = Engine(
@@ -72,7 +72,7 @@ class FeatureExtractor:
 
 
     def run_deepsparse(self, frames):
-        
+
         if len(frames) == 0:
             return []
 
