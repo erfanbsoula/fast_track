@@ -1,11 +1,8 @@
-import os
-import numpy as np
-import cv2
+import sys
 import time
+import cv2
+import numpy as np
 from dnn_utils.object_detection import ObjectDetector
-from dnn_utils.reidentification import FeatureExtractor
-from deep_sort.tracker import Tracker
-from deep_sort.nn_matching import NearestNeighborDistanceMetric
 
 
 FRAME_RATE = 5
@@ -13,23 +10,13 @@ FRAME_DURATION = 1 / FRAME_RATE
 
 object_detector = ObjectDetector(
     engine='yolo', device='cpu',
-    model_path='dnn_utils/models/yolov8n_crowdhuman.pt',
+    model_path='dnn_utils/models/yolov8n.pt',
     model_image_size=(320, 512),
-    target_cls=1
+    target_cls=0
 )
 
-feature_extractor = FeatureExtractor(
-    engine='torchreid', device='cpu',
-    model_name='osnet_x0_25',
-    model_path='dnn_utils/models/osnet_x0_25_market.pth'
-)
-
-database = 'database/ids.npy'
-
-if os.path.isfile(database):
-    features = np.load(database)
-else:
-    features = np.empty(shape=(0, 512), dtype=np.float32)
+file_name = 'database/' + sys.argv[1] + '-' + sys.argv[2] + '.jpg'
+print(file_name)
 
 def get_area(det):
 
@@ -68,26 +55,23 @@ while True:
 
         keypress = cv2.waitKey(1) & 0xFF
 
-        # if keypress == ord('t'):
-        if t_loop_start - t_global > 5:
+        if keypress == ord('t'):
+        # if t_loop_start - t_global > 5:
 
             tlbr = dets[0].to_tlbr().astype(np.int32)
             tlbr = np.clip(tlbr, 0, clip_max)
             x1, y1, x2, y2 = tlbr
-            imgs = [frame[y1:y2, x1:x2]]
-            print(imgs[0].shape)
-            cv2.imshow("image taken", imgs[0])
-            feature_new = feature_extractor(imgs)
-            features = np.concatenate((features, feature_new), axis=0)
-            features = features[-5:]
-            np.save(database, features, allow_pickle=False)
-            time.sleep(5)
+            img = frame[y1:y2, x1:x2]
+            cv2.imshow("object detection", img)
+            cv2.imwrite(file_name, img)
+            cv2.waitKey(0)
             break
 
         elif keypress == ord('x'):
             break
 
-        draw_prediction(frame, 0, dets[0].to_tlbr().astype(np.int32))
+        if len(dets) != 0:
+            draw_prediction(frame, 0, dets[0].to_tlbr().astype(np.int32))
         cv2.imshow("object detection", frame)
 
         t_now = time.time()

@@ -12,17 +12,17 @@ img = Image.open(image)
 img = np.array(img, dtype=np.uint8)
 
 object_detector = ObjectDetector(
-    engine='deepsparse', device='cpu',
-    model_path='dnn_utils/models/yolov8-n-coco-base.onnx',
+    engine='yolo', device='cpu',
+    model_path='dnn_utils/models/yolov8n.pt',
     input_image_size=img.shape[:2],
-    model_image_size=(640, 640),
+    model_image_size=(320, 512),
     target_cls=0
 )
 
 feature_extractor = FeatureExtractor(
-    engine='deepsparse', device='cpu',
+    engine='torchreid', device='cpu',
     model_name='osnet_x0_25',
-    model_path='dnn_utils/models/osnet_x0_25_market.onnx',
+    model_path='dnn_utils/models/osnet_x0_25_market.pth',
 )
 
 def draw_prediction(img, tlbr):
@@ -33,7 +33,7 @@ n_iterations = 1
 t = time.time()
 
 for i in range(n_iterations):
-    dets = object_detector(img, conf_th=0.25, nms_th=0.7)
+    dets = object_detector(img, conf_th=0.4, nms_th=0.7)
 
 t = (time.time() - t) / n_iterations
 print(f'average object detection time: {t*1000:.1f} ms')

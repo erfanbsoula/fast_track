@@ -42,20 +42,22 @@ FRAME_DURATION = 1 / FRAME_RATE
 object_detector = ObjectDetector(
     engine='yolo', device='cpu',
     model_path='dnn_utils/models/yolov8n_crowdhuman.pt',
-    model_image_size=(320, 512),
+    model_image_size=(160, 256),
     target_cls=1
 )
 
 feature_extractor = FeatureExtractor(
-    engine='torchreid', device='cpu',
+    engine='deepsparse', device='cpu',
     model_name='osnet_x0_25',
-    model_path='dnn_utils/models/osnet_x0_25_market.pth'
+    model_path='dnn_utils/models/osnet_x0_25_market.onnx'
 )
 
 def draw_prediction(img, class_id, tlbr):
 
     label = str(class_id)
     color = [0, 0, 255]
+    if class_id < 5:
+        color = [0, 255, 0]
     cv2.rectangle(img, tlbr[:2], tlbr[2:], color, 2)
     cv2.putText(img, label, (tlbr[0]+5, tlbr[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
@@ -112,6 +114,11 @@ while True:
             tlbr = np.clip(tlbr, 0, clip_max)
             x1, y1, x2, y2 = tlbr
             frames.append(frame[y1:y2, x1:x2])
+
+        if len(frames) != 0:
+            features = feature_extractor(frames)
+            for i, det in enumerate(dets):
+                det.set_feature(features[i])
         
         features = feature_extractor(frames)
         for i, det in enumerate(dets):
@@ -126,7 +133,7 @@ while True:
             if not track.is_confirmed() or track.time_since_update > 1:
                 continue
 
-            draw_prediction(frame, track.track_id, track.to_tlbr().astype(np.int32))
+            draw_prediction(frame, track.known_id, track.to_tlbr().astype(np.int32))
         
         # if frame_counter % (FRAME_RATE // 3) == 0:
         if True:
@@ -157,7 +164,7 @@ while True:
                         curr_y_angle -= step_size
                         changed = True
                 
-                elif target[1] > frame.shape[0] / 2 - 100:
+                elif target[1] > frame.shape[0] / 2 - 140:
                     if curr_y_angle + step_size <= 20:
                         curr_y_angle += step_size
                         changed = True

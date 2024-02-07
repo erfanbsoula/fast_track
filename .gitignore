@@ -11,3 +11,6 @@ dnn_utils/models/*
 
 # ignore tracking results
 evaluation/tracking_result/
+
+database/*
+!database/.gitkeep

@@ -71,7 +71,6 @@ class Track:
         self.hits = 1
         self.age = 1
         self.time_since_update = 0
-        self.known_id = track_id
 
         self.state = TrackState.Tentative
         self.features = []
@@ -80,6 +79,10 @@ class Track:
 
         self._n_init = n_init
         self._max_age = max_age
+
+        self.known_id = -1
+        self.name = None
+        self.time_from_last_known = 1e6
 
     def to_tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,
@@ -123,6 +126,7 @@ class Track:
         self.mean, self.covariance = kf.predict(self.mean, self.covariance)
         self.age += 1
         self.time_since_update += 1
+        self.time_from_last_known += 1
 
     def update(self, kf, detection):
         """Perform Kalman filter measurement update step and update the feature

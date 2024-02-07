@@ -1,6 +1,9 @@
 import numpy as np
 import cv2
 
+import torchvision.transforms as T
+import torch
+
 class FeatureExtractor:
 
     mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
@@ -8,10 +11,13 @@ class FeatureExtractor:
 
     def __init__(self, engine, model_name, model_path,
                  model_image_size=(256, 128), # (Height, Width)
-                 device='cpu', batch_size=2):
+                 device='cpu', batch_size=1):
 
         assert isinstance(engine, str)
-        assert engine in ['torchreid', 'deepsparse']
+        assert engine in [
+            'torchreid',
+            # 'deepsparse'
+        ]
         assert device in ['cpu', 'cuda']
 
         self.model_name = model_name
@@ -64,7 +70,7 @@ class FeatureExtractor:
 
         self.engine = Engine(
             model=self.model_path,
-            num_cores=2,
+            num_cores=1,
             batch_size=self.batch_size
         )
 
@@ -78,18 +84,25 @@ class FeatureExtractor:
 
         imgs = []
 
-        for img in frames:
-            imgs.append(
-                cv2.resize(
-                    img, self.model_image_size,
-                    interpolation=cv2.INTER_LINEAR
-                )
-            )
+        # for img in frames:
+        #     imgs.append(
+        #         cv2.resize(
+        #             img, self.model_image_size,
+        #             interpolation=cv2.INTER_LINEAR
+        #         )
+        #     )
 
-        imgs = np.array(imgs, dtype=np.float32)
-        imgs = imgs / 255.0
-        imgs = (imgs - self.mean) / self.std
-        imgs = imgs.transpose((0,3,1,2)) # bwhc -> bcwh
+        # imgs = np.array(imgs, dtype=np.float32)
+        # imgs = imgs / 255.0
+        # imgs = (imgs - self.mean) / self.std
+        # imgs = imgs.transpose((0,3,1,2)) # bwhc -> bcwh
+
+        for element in frames:
+            image = self.to_pil(element)
+            image = self.preprocess(image)
+            imgs.append(image)
+
+        imgs = torch.stack(imgs, dim=0).cpu().numpy()
 
         initial_batch_size = imgs.shape[0]
         if initial_batch_size % self.batch_size != 0:
@@ -98,6 +111,7 @@ class FeatureExtractor:
             imgs = np.pad(imgs, pad_size, constant_values=0)
     
         imgs = np.ascontiguousarray(imgs, dtype=np.float32)
+        print(imgs.shape)
 
         outputs = []
 

@@ -5,16 +5,17 @@ from dnn_utils.object_detection import ObjectDetector
 from dnn_utils.reidentification import FeatureExtractor
 from deep_sort.tracker import Tracker
 from deep_sort.nn_matching import NearestNeighborDistanceMetric
+from load_database import get_known_ids
+import json
 
-
-FRAME_RATE = 8
+FRAME_RATE = 5
 FRAME_DURATION = 1 / FRAME_RATE
 
 object_detector = ObjectDetector(
     engine='yolo', device='cpu',
-    model_path='dnn_utils/models/yolov8n_crowdhuman.pt',
+    model_path='dnn_utils/models/yolov8n.pt',
     model_image_size=(320, 512),
-    target_cls=1
+    target_cls=0
 )
 
 feature_extractor = FeatureExtractor(
@@ -23,14 +24,23 @@ feature_extractor = FeatureExtractor(
     model_path='dnn_utils/models/osnet_x0_25_market.pth'
 )
 
-def draw_prediction(img, class_id, tlbr):
+def get_area(det):
 
-    label = str(class_id)
+    tlbr = det.to_tlbr().astype(np.int32)
+    x1, y1, x2, y2 = tlbr
+    return abs(x2 - x1) * abs(y2 - y1)
+
+def draw_prediction(img, track):
+    
+    tlbr = track.to_tlbr().astype(np.int32)
+    label = str(track.track_id)
     color = [0, 0, 255]
-    if class_id < 5:
+    if track.known_id > 0:
         color = [0, 255, 0]
+        label = track.name
+
     cv2.rectangle(img, tlbr[:2], tlbr[2:], color, 2)
-    cv2.putText(img, label, (tlbr[0]+5, tlbr[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+    cv2.putText(img, label, (tlbr[0]+5, tlbr[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
 fps = []
 yolo = []
@@ -50,7 +60,9 @@ metric = NearestNeighborDistanceMetric(
     budget=40
 )
 
-tracker = Tracker(metric)
+known_ids, known_features, known_names = get_known_ids(feature_extractor)
+
+tracker = Tracker(metric, known_ids, known_features, known_names)
 
 prev_time_point = 0
 proc_duration = 0
@@ -66,6 +78,8 @@ while True:
 
         tmp = time.time()
         dets = object_detector(frame)
+        dets = sorted(dets, key=get_area, reverse=True)
+        dets = dets[:5]
         yolo.append(time.time()-tmp)
 
         tmp = time.time()
@@ -94,7 +108,7 @@ while True:
             if not track.is_confirmed() or track.time_since_update > 1:
                 continue
 
-            draw_prediction(frame, track.known_id, track.to_tlbr().astype(np.int32))
+            draw_prediction(frame, track)
 
 
         tracker.predict()
@@ -108,6 +122,10 @@ while True:
 
     if cv2.waitKey(1) & 0xFF == ord('x'):
         display_stats()
+        history = [tracker.history[key] for key in tracker.history]
+        history = 'data = ' + json.dumps(history)
+        with open('interface/data.js', 'w') as f:
+            f.write(history) 
         break
 
 capture.release()

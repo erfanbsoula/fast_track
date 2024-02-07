@@ -1,0 +1,213 @@
+.styled-table {
+  padding: 0px !important;
+  width: 100%;
+  overflow: hidden;
+  border: 0;
+  box-shadow: 0px -1px 5px 2px rgba(0, 0, 0, 0.15);
+}
+.styled-table table {
+  margin: 0px;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.9em;
+}
+.styled-table table thead tr {
+  background-color: #4a8fdd;
+  color: #F7F7F7;
+}
+.styled-table table thead tr th {
+  background-color: #4a8fdd;
+  top: 0;
+}
+.styled-table table tbody tr {
+  background-color: #F7F7F7;
+  color: #505050;
+  border-bottom: 1px solid #E0E0E0;
+}
+.styled-table table tbody tr:nth-of-type(even) {
+  background-color: #F1F1F1;
+}
+.styled-table table tbody tr:last-of-type {
+  border-bottom: 2px solid #4a8fdd;
+}
+.styled-table table tbody .active-row {
+  font-weight: bold;
+  color: #009879;
+}
+.styled-table table th, .styled-table table td {
+  box-sizing: border-box;
+  padding: 12px 15px;
+  overflow: hidden;
+  text-align: center;
+}
+.styled-table table th:first-of-type, .styled-table table tr td:first-of-type {
+  padding-left: 50px;
+}
+.styled-table table th:last-of-type, .styled-table table tr td:last-of-type {
+  padding-right: 50px;
+}
+.styled-table a {
+  margin: 0;
+  padding: 0;
+  color: royalblue;
+  text-decoration: none;
+}
+.styled-table img {
+  display: block;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+}
+
+/* .styled-table table th:nth-of-type(1), .styled-table table tr td:nth-of-type(1) {
+  width: 75px;
+}
+.styled-table table th:nth-of-type(2), .styled-table table tr td:nth-of-type(2) {
+  width: 140px;
+  text-align: left;
+}
+.styled-table table th:nth-of-type(3), .styled-table table tr td:nth-of-type(3) {
+  width: 120px;
+}
+.styled-table table th:nth-of-type(3) #dateSort, .styled-table table tr td:nth-of-type(3) #dateSort {
+  width: 12px;
+  height: 12px;
+  margin-right: 5px;
+  filter: invert(0.95);
+  cursor: pointer;
+}
+.styled-table table th:nth-of-type(3) div div, .styled-table table tr td:nth-of-type(3) div div {
+  margin-right: 20px;
+}
+.styled-table table th:nth-of-type(4), .styled-table table tr td:nth-of-type(4) {
+  width: 103px;
+}
+.styled-table table th:nth-of-type(5), .styled-table table tr td:nth-of-type(5) {
+  width: 102px;
+}
+.styled-table table th:nth-of-type(6), .styled-table table tr td:nth-of-type(6) {
+  width: 160px;
+} */
+
+
+* {
+  font-family: Arial, Verdana, Helvetica, sans-serif;
+}
+
+body {
+  margin: 0px;
+  background-color: #E8E9EB;
+}
+
+#content-container {
+  margin-left: 0px;
+  transition: margin 500ms;
+}
+
+.row-flex {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.column-flex {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.center {
+  justify-content: center;
+  align-items: center;
+}
+
+.width-full {
+  width: 100%;
+}
+
+.stretch {
+  align-items: stretch;
+}
+
+.align-self-2start {
+  align-self: flex-start;
+}
+
+.center-text {
+  text-align: center;
+}
+
+br {
+  margin: 5px 0;
+}
+
+.space-left {
+  margin-left: 10px;
+}
+
+.space-right {
+  margin-right: 10px;
+}
+
+.space-top {
+  margin-top: 15px;
+}
+
+.margin-sides {
+  margin: 0 20px;
+}
+
+.card {
+  padding: 15px;
+  border-radius: 11px;
+  border: inset solid rgba(0, 0, 0, 0.2) 1px;
+  box-shadow: 0px 0px 6px 2px rgba(0, 0, 0, 0.15);
+  border: 0px;
+  background-color: #F7F7F7;
+  box-sizing: border-box;
+  transition: box-shadow 300ms ease-out;
+}
+.card:hover {
+  border: inset solid rgba(0, 0, 0, 0.2) 1px;
+  box-shadow: 0px 0px 8px 6px rgba(0, 0, 0, 0.15);
+}
+
+header {
+  height: 70px;
+  background-color: #4a8fdd;
+  color: #F7F7F7;
+  position: sticky;
+  top: 0;
+  cursor: default;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+header .header-img {
+  max-height: 50px;
+  margin: 5px;
+  filter: invert(95%);
+}
+header #header-title {
+  margin-left: 40px;
+  text-align: center;
+  color: #F7F7F7;
+  transition: color 300ms ease-out;
+  font-size: 21px;
+  font-weight: bold;
+}
+header #header-title:hover {
+  color: #F9CF00;
+}
+
+main {
+  max-width: 1720px;
+  margin: auto;
+}
