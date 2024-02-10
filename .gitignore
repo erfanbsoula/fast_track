@@ -14,3 +14,4 @@ evaluation/tracking_result/
 
 database/*
 !database/.gitkeep
+interface/data.js

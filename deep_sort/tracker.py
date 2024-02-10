@@ -130,7 +130,7 @@ class Tracker:
                     else:
                         self.history[track.known_id]['last'] = now
         
-        for i, track in enumerate(self.tracks):
+        for track in self.tracks:
             if not track.is_confirmed():
                 continue
 
@@ -138,7 +138,7 @@ class Tracker:
                track.known_id in detected_known_ids):
 
                 track.known_id = -1
-                self.time_from_last_known = 1e6
+                track.time_from_last_known = 1e6
 
         self.metric.partial_fit(features, targets, active_targets)
 
