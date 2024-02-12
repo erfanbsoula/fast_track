@@ -97,7 +97,7 @@ known_ids, known_features, known_names = get_known_ids(feature_extractor)
 
 tracker = Tracker(metric, known_ids, known_features, known_names)
 tracker.kf._std_weight_position = 1 / 20
-tracker.kf._std_weight_velocity = 1 / 30
+tracker.kf._std_weight_velocity = 1 / 60
 
 def controller(target_track):
 
@@ -123,12 +123,12 @@ def controller(target_track):
             curr_x_angle += step_size * gain
             changed = True
 
-    if target[1] < 25:
+    if target[1] < 5:
         if curr_y_angle - step_size >= -30:
             curr_y_angle -= step_size
             changed = True
 
-    elif target[1] > frame.shape[0] / 2 - 140:
+    elif target[1] > frame.shape[0] / 2 - 120:
         if curr_y_angle + step_size <= 20:
             curr_y_angle += step_size
             changed = True

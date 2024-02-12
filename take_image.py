@@ -35,7 +35,7 @@ def draw_prediction(img, class_id, tlbr):
 
 prev_time_point = 0
 proc_duration = 0
-capture = cv2.VideoCapture(0)
+capture = cv2.VideoCapture(2)
 
 t_global = time.time()
 

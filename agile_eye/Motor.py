@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Type
 import dynamixel_sdk as dxl
 
+SPEED = 15
 
 class DynamixelMotor(ABC):
 
@@ -109,7 +110,7 @@ class Dynamixel_MX_106(DynamixelMotor):
     ADDR_PRO_VELOCITY = 112
 
     VELOCITY_UNIT_SCALE = 0.229 # rpm
-    PROFILE_VELOCITY = int(15 * 60 / 360 / VELOCITY_UNIT_SCALE)
+    PROFILE_VELOCITY = int(SPEED * 60 / 360 / VELOCITY_UNIT_SCALE)
 
     def __init__(self, portHandler, dxlId, homePosition):
                 super().__init__(portHandler, dxlId, homePosition)
@@ -140,7 +141,7 @@ class Dynamixel_MX_64(DynamixelMotor):
     ADDR_PRO_VELOCITY = 32
 
     VELOCITY_UNIT_SCALE = 0.114 # rpm
-    PROFILE_VELOCITY = int(15 * 60 / 360 / VELOCITY_UNIT_SCALE)
+    PROFILE_VELOCITY = int(SPEED * 60 / 360 / VELOCITY_UNIT_SCALE)
 
     def __init__(self, portHandler, dxlId, homePosition):
         super().__init__(portHandler, dxlId, homePosition)
