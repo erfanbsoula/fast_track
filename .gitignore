@@ -1,17 +1,22 @@
 # ignore all __pycache__ directories across the project
 **/__pycache__/
 
-# ignore MOT Challenge dataset directory
-MOT16/
+# ignore MOT datasets and trcker results
+evaluation/datasets/**
+evaluation/tracker_results/**
 
-# ignore models
-dnn_utils/models/*
+# keep directory structure
+!evaluation/datasets/.gitkeep
+!evaluation/tracker_results/.gitkeep
+
+# keep ground-truth of datasets
+!evaluation/ground_truths/**
+
+# ignore neural network models
+dnn_utils/models/**
+# keep directory structure
 !dnn_utils/models/.gitkeep
-*.pt
 
-# ignore tracking results
-evaluation/tracking_result/
-
-database/*
-!database/.gitkeep
+scripts/tmp/*
+!scripts/tmp/.gitkeep
 interface/data.js

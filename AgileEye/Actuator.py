@@ -1,22 +1,26 @@
 from abc import ABC, abstractmethod
 from typing import List, Type
+import numpy as np
 import dynamixel_sdk as dxl
 
-SPEED = 15
+HOME_POSITION = np.array([2583, 2064, 2065], dtype=np.float64)
 
 class DynamixelMotor(ABC):
+
+    SPEED = 15 # degrees per second
 
     def __init__(self, portHandler, dxlId, homePosition):
         self.PORT_HANDLER = portHandler
         self.DXL_ID = dxlId
         self.HOME_POSITION = homePosition
         self.packetHandler = dxl.PacketHandler(self.PROTOCOL_VERSION)
+        self.PROFILE_VELOCITY = int(self.SPEED * 60 / 360 / self.VELOCITY_UNIT_SCALE)
 
         if self.enableTorque():
-            print(f"Dynamixel {dxlId} has been successfully connected")
+            print(f"Dynamixel {dxlId} has been successfully connected.")
 
         if self.setProfileVelocity(self.PROFILE_VELOCITY):
-            print(f"Dynamixel {dxlId} profile velocity is set")
+            print(f"Dynamixel {dxlId} profile velocity is set.")
 
         if self.setGoalPosition(self.HOME_POSITION):
             print(f"Dynamixel {dxlId} moveing to home position ...")
@@ -28,7 +32,7 @@ class DynamixelMotor(ABC):
 
     @property
     @abstractmethod
-    def PROFILE_VELOCITY(self):
+    def VELOCITY_UNIT_SCALE(self):
         pass
     
     def checkResults(self, dxl_comm_result, dxl_error):
@@ -110,10 +114,9 @@ class Dynamixel_MX_106(DynamixelMotor):
     ADDR_PRO_VELOCITY = 112
 
     VELOCITY_UNIT_SCALE = 0.229 # rpm
-    PROFILE_VELOCITY = int(SPEED * 60 / 360 / VELOCITY_UNIT_SCALE)
 
     def __init__(self, portHandler, dxlId, homePosition):
-                super().__init__(portHandler, dxlId, homePosition)
+            super().__init__(portHandler, dxlId, homePosition)
 
     def enableTorque(self):
         return self.write1Byte(self.ADDR_TORQUE_ENABLE, 1)
@@ -141,7 +144,6 @@ class Dynamixel_MX_64(DynamixelMotor):
     ADDR_PRO_VELOCITY = 32
 
     VELOCITY_UNIT_SCALE = 0.114 # rpm
-    PROFILE_VELOCITY = int(SPEED * 60 / 360 / VELOCITY_UNIT_SCALE)
 
     def __init__(self, portHandler, dxlId, homePosition):
         super().__init__(portHandler, dxlId, homePosition)
@@ -162,7 +164,7 @@ class Dynamixel_MX_64(DynamixelMotor):
         return self.write2Byte(self.ADDR_PRO_VELOCITY, velocity)
 
 
-class MotorGroup():
+class Group():
 
     def __init__(self, motors: List[Type[DynamixelMotor]] = []):
         self.motors = motors
@@ -174,7 +176,7 @@ class MotorGroup():
         for motor in self.motors:
             motor.disableTorque()
 
-    def setGoalPositions(self, angles: List[int]):
+    def setGoalPosition(self, angles: List[int]):
 
         if len(angles) != len(self.motors):
             return False
@@ -185,10 +187,26 @@ class MotorGroup():
 
         return result
 
-    def getPresentPositions(self):
+    def getPresentPosition(self):
 
         results = []
         for motor in self.motors:
             results.append(motor.getPresentPosition())
 
         return results
+
+
+def initialize(start_position=HOME_POSITION,
+               device_name='/dev/ttyUSB0', baud_rate=57600):
+
+    portHandler = dxl.PortHandler(device_name)
+    portHandler.openPort()
+    portHandler.setBaudRate(baud_rate)
+
+    motors = Group([
+        Dynamixel_MX_64(portHandler, 1, start_position[0]),
+        Dynamixel_MX_106(portHandler, 3, start_position[1]),
+        Dynamixel_MX_106(portHandler, 2, start_position[2]),
+    ])
+
+    return motors

@@ -9,8 +9,8 @@ from load_database import get_known_ids
 import json
 
 import dynamixel_sdk as dxl
-from agile_eye.Motor import Dynamixel_MX_106, Dynamixel_MX_64, MotorGroup
-from agile_eye.AgileEye import ikp
+from AgileEye.Actuator import Dynamixel_MX_106, Dynamixel_MX_64, Group
+from AgileEye.Kinematics import ikp
 
 DEVICENAME = '/dev/ttyUSB0'
 BAUDRATE = 57600
@@ -18,7 +18,7 @@ BAUDRATE = 57600
 HOME_POSITIONS = np.array([2583, 2065, 2064])
 
 curr_x_angle = 0
-curr_y_angle = 0
+curr_y_angle = -5
 start_position = HOME_POSITIONS + ikp(0, curr_x_angle, curr_y_angle)
 
 portHandler = dxl.PortHandler(DEVICENAME)
@@ -35,7 +35,7 @@ else:
     print("failed to change the baudrate")
     quit()
 
-motors = MotorGroup([
+motors = Group([
     Dynamixel_MX_64(portHandler, 1, start_position[0]),
     Dynamixel_MX_106(portHandler, 2, start_position[1]),
     Dynamixel_MX_106(portHandler, 3, start_position[2]),
@@ -134,7 +134,7 @@ def controller(target_track):
             changed = True
 
     if changed:
-        motors.setGoalPositions(list(HOME_POSITIONS + ikp(0, curr_x_angle, curr_y_angle)))
+        motors.setGoalPosition(list(HOME_POSITIONS + ikp(0, curr_x_angle, curr_y_angle)))
 
 
 prev_time_point = 0
@@ -207,7 +207,7 @@ while True:
             frame_counter = 0
         
         if frame_counter > 2 * FRAME_RATE:
-            motors.setGoalPositions(list(start_position))
+            motors.setGoalPosition(list(start_position))
             frame_counter = 0
 
         track_time.append(time.time()-tmp)

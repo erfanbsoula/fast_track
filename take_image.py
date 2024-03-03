@@ -55,8 +55,8 @@ while True:
 
         keypress = cv2.waitKey(1) & 0xFF
 
-        if keypress == ord('t'):
-        # if t_loop_start - t_global > 5:
+        # if keypress == ord('t'):
+        if t_loop_start - t_global > 5:
 
             tlbr = dets[0].to_tlbr().astype(np.int32)
             tlbr = np.clip(tlbr, 0, clip_max)
