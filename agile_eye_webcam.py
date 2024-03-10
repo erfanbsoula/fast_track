@@ -7,39 +7,18 @@ from deep_sort.tracker import Tracker
 from deep_sort.nn_matching import NearestNeighborDistanceMetric
 from load_database import get_known_ids
 import json
-
-import dynamixel_sdk as dxl
-from AgileEye.Actuator import Dynamixel_MX_106, Dynamixel_MX_64, Group
-from AgileEye.Kinematics import ikp
+import AgileEye
 
 DEVICENAME = '/dev/ttyUSB0'
 BAUDRATE = 57600
 
-HOME_POSITIONS = np.array([2583, 2065, 2064])
-
 curr_x_angle = 0
 curr_y_angle = -5
-start_position = HOME_POSITIONS + ikp(0, curr_x_angle, curr_y_angle)
 
-portHandler = dxl.PortHandler(DEVICENAME)
+start_position = AgileEye.HOME_POSITION + \
+                 AgileEye.solve_inverse_kinematics(0, curr_x_angle, curr_y_angle)
 
-if portHandler.openPort():
-    print("succeeded to open the port")
-else:
-    print("failed to open the port")
-    quit()
-
-if portHandler.setBaudRate(BAUDRATE):
-    print("succeeded to change the baudrate")
-else:
-    print("failed to change the baudrate")
-    quit()
-
-motors = Group([
-    Dynamixel_MX_64(portHandler, 1, start_position[0]),
-    Dynamixel_MX_106(portHandler, 2, start_position[1]),
-    Dynamixel_MX_106(portHandler, 3, start_position[2]),
-])
+robot = AgileEye.initialize(start_position, DEVICENAME, BAUDRATE)
 
 FRAME_RATE = 5
 FRAME_DURATION = 1 / FRAME_RATE
@@ -95,7 +74,11 @@ metric = NearestNeighborDistanceMetric(
 
 known_ids, known_features, known_names = get_known_ids(feature_extractor)
 
-tracker = Tracker(metric, known_ids, known_features, known_names)
+tracker = Tracker(
+    metric, known_ids=known_ids,
+    known_features=known_features,
+    known_names=known_names
+)
 tracker.kf._std_weight_position = 1 / 20
 tracker.kf._std_weight_velocity = 1 / 60
 
@@ -134,8 +117,8 @@ def controller(target_track):
             changed = True
 
     if changed:
-        motors.setGoalPosition(list(HOME_POSITIONS + ikp(0, curr_x_angle, curr_y_angle)))
-
+        robot.setGoalPosition(AgileEye.HOME_POSITION + \
+            AgileEye.solve_inverse_kinematics(0, curr_y_angle, curr_x_angle))
 
 prev_time_point = 0
 proc_duration = 0
@@ -207,7 +190,7 @@ while True:
             frame_counter = 0
         
         if frame_counter > 2 * FRAME_RATE:
-            motors.setGoalPosition(list(start_position))
+            robot.setGoalPosition(start_position)
             frame_counter = 0
 
         track_time.append(time.time()-tmp)
@@ -222,7 +205,7 @@ while True:
         display_stats()
         history = [tracker.history[key] for key in tracker.history]
         history = 'data = ' + json.dumps(history)
-        with open('interface/data.js', 'w') as f:
+        with open('application/interface/data.js', 'w') as f:
             f.write(history) 
         break
 

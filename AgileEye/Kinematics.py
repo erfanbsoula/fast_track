@@ -99,7 +99,7 @@ def solve_inverse_kinematics(zdeg, ydeg, xdeg):
     theta2 = atan(v2[1]/v2[0])
     theta3 = atan(v3[0]/v3[2])
 
-    return np.array([degrees(theta1), degrees(theta2), degrees(theta3)])
+    return np.array([degrees(theta1), degrees(theta2), degrees(theta3)]) * 4096/360
 
 
 def solve_forward_kinematics(theta1, theta2, theta3):

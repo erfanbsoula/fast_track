@@ -15,7 +15,7 @@ object_detector = ObjectDetector(
     target_cls=0
 )
 
-file_name = 'database/' + sys.argv[1] + '-' + sys.argv[2] + '.jpg'
+file_name = 'application/tmp/' + sys.argv[1] + '-' + sys.argv[2] + '.jpg'
 print(file_name)
 
 def get_area(det):
@@ -35,7 +35,7 @@ def draw_prediction(img, class_id, tlbr):
 
 prev_time_point = 0
 proc_duration = 0
-capture = cv2.VideoCapture(2)
+capture = cv2.VideoCapture(0)
 
 t_global = time.time()
 

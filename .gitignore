@@ -4,11 +4,9 @@
 # ignore MOT datasets and trcker results
 evaluation/datasets/**
 evaluation/tracker_results/**
-
 # keep directory structure
 !evaluation/datasets/.gitkeep
 !evaluation/tracker_results/.gitkeep
-
 # keep ground-truth of datasets
 !evaluation/ground_truths/**
 
@@ -17,6 +15,6 @@ dnn_utils/models/**
 # keep directory structure
 !dnn_utils/models/.gitkeep
 
-scripts/tmp/*
-!scripts/tmp/.gitkeep
-interface/data.js
+application/tmp/*
+!application/tmp/.gitkeep
+application/interface/data.js

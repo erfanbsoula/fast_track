@@ -62,7 +62,11 @@ metric = NearestNeighborDistanceMetric(
 
 known_ids, known_features, known_names = get_known_ids(feature_extractor)
 
-tracker = Tracker(metric, known_ids, known_features, known_names)
+tracker = Tracker(
+    metric, known_ids=known_ids,
+    known_features=known_features,
+    known_names=known_names
+)
 
 prev_time_point = 0
 proc_duration = 0
@@ -124,7 +128,7 @@ while True:
         display_stats()
         history = [tracker.history[key] for key in tracker.history]
         history = 'data = ' + json.dumps(history)
-        with open('interface/data.js', 'w') as f:
+        with open('application/interface/data.js', 'w') as f:
             f.write(history) 
         break
 

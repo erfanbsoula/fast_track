@@ -1,7 +1,7 @@
 import os
 import cv2
 
-def get_known_ids(feature_extractor, dir='database'):
+def get_known_ids(feature_extractor, dir='application/tmp'):
     
     ids = []
     features = []

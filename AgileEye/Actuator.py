@@ -125,7 +125,7 @@ class Dynamixel_MX_106(DynamixelMotor):
         return self.write1Byte(self.ADDR_TORQUE_ENABLE, 0)
 
     def setGoalPosition(self, angle):
-        return self.write4Byte(self.ADDR_GOAL_POSITION, angle)
+        return self.write4Byte(self.ADDR_GOAL_POSITION, int(angle))
 
     def getPresentPosition(self):
         return self.read4Byte(self.ADDR_GOAL_POSITION)
@@ -155,7 +155,7 @@ class Dynamixel_MX_64(DynamixelMotor):
         return self.write1Byte(self.ADDR_TORQUE_ENABLE, 0)
 
     def setGoalPosition(self, angle):
-        return self.write2Byte(self.ADDR_GOAL_POSITION, angle)
+        return self.write2Byte(self.ADDR_GOAL_POSITION, int(angle))
 
     def getPresentPosition(self):
         return self.read2Byte(self.ADDR_GOAL_POSITION)

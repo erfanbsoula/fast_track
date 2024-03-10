@@ -9,7 +9,6 @@ from .track import Track
 from .nn_matching import _pdist
 from datetime import datetime
 
-reid_threshold = 100
 
 class Tracker:
     """
@@ -41,8 +40,14 @@ class Tracker:
 
     """
 
-    def __init__(self, metric, known_ids, known_features,
-                 known_names, max_iou_distance=0.7, max_age=30, n_init=3):
+    def __init__(self, metric, max_iou_distance=0.7, max_age=30, n_init=3,
+                 known_ids=[], known_features=[], known_names=[],
+                 reid_threshold=100):
+
+        assert (
+            len(known_ids) == len(known_features) and
+            len(known_ids) == len(known_names)
+        )
 
         self.metric = metric
         self.max_iou_distance = max_iou_distance
@@ -56,6 +61,7 @@ class Tracker:
         self.known_ids = known_ids
         self.known_features = known_features
         self.known_names = known_names
+        self.reid_threshold = reid_threshold
 
         self.history = {}
 
@@ -104,44 +110,54 @@ class Tracker:
         features = np.asarray(features)
         targets = np.asarray(targets)
 
-        detected_known_ids = []
-
-        if len(features) != 0 and len(self.known_ids) != 0:
-            dists = _pdist(self.known_features, features)
-            argmins = dists.argmin(axis=1)
-            now = datetime.now().strftime('%H:%M')
-
-            for i in range(len(self.known_ids)):
-                match_idx = argmins[i]
-                if dists[i, match_idx] < reid_threshold:
-                    detected_known_ids.append(i)
-                    track = self.tracks[indices[match_idx]]
-                    track.known_id = self.known_ids[i]
-                    track.name = self.known_names[i]
-                    track.time_from_last_known = 0
-
-                    if not self.known_ids[i] in self.history:
-                        self.history[self.known_ids[i]] = {
-                            'name': self.known_names[i],
-                            'id': str(self.known_ids[i]),
-                            'first': now,
-                            'last': now
-                        }
-                    else:
-                        self.history[track.known_id]['last'] = now
-        
-        for track in self.tracks:
-            if not track.is_confirmed():
-                continue
-
-            if(track.time_from_last_known > 0 and
-               track.known_id in detected_known_ids):
-
-                track.known_id = -1
-                track.time_from_last_known = 1e6
+        if len(features) != 0:
+            self._identity_search(features, indices)
 
         self.metric.partial_fit(features, targets, active_targets)
 
+    def _identity_search(self, features, indices):
+        
+        if len(self.known_ids) == 0:
+            return
+
+        detected_known_ids = []
+
+        dists = _pdist(self.known_features, features)
+        argmins = dists.argmin(axis=1)
+        now = datetime.now().strftime('%H:%M')
+
+        for i in range(len(self.known_ids)):
+
+            match_idx = argmins[i]
+            if dists[i, match_idx] < self.reid_threshold:
+
+                detected_known_ids.append(i)
+                track = self.tracks[indices[match_idx]]
+                track.known_id = self.known_ids[i]
+                track.name = self.known_names[i]
+                track.time_from_last_known = 0
+
+                if not self.known_ids[i] in self.history:
+                    self.history[self.known_ids[i]] = {
+                        'name': self.known_names[i],
+                        'id': str(self.known_ids[i]),
+                        'first': now,
+                        'last': now
+                    }
+
+                else:
+                    self.history[track.known_id]['last'] = now
+
+        for track in self.tracks:
+
+            if not track.is_confirmed():
+                continue
+
+            if (track.time_from_last_known > 0 and
+                track.known_id in detected_known_ids):
+
+                track.known_id = -1
+                track.time_from_last_known = 1e6
 
     def _match(self, detections):
 

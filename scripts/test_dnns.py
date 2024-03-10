@@ -1,3 +1,7 @@
+# run this script from the base directory
+import sys
+sys.path.append(".")
+
 import numpy as np
 import time
 import cv2
@@ -6,7 +10,7 @@ from dnn_utils.object_detection import ObjectDetector
 from dnn_utils.reidentification import FeatureExtractor
 
 
-image = "basilica.jpg"
+image = "./scripts/basilica.jpg"
 
 img = Image.open(image)
 img = np.array(img, dtype=np.uint8)
